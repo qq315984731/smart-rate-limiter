@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>接口管理 - 限流配置</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            height: 60px;
+        }
+        
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav a {
+            text-decoration: none;
+            color: #666;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+        
+        .nav a:hover, .nav a.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .page-title h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .page-title p {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-group label {
+            font-size: 14px;
+            color: #666;
+            white-space: nowrap;
+        }
+        
+        .filter-group input,
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .filter-group input[type="text"] {
+            min-width: 200px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        
+        .endpoints-table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th,
+        .table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+        
+        .table td {
+            font-size: 14px;
+        }
+        
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .method-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .method-get { background: #d4edda; color: #155724; }
+        .method-post { background: #fff3cd; color: #856404; }
+        .method-put { background: #cce5ff; color: #004085; }
+        .method-delete { background: #f8d7da; color: #721c24; }
+        
+        .config-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .config-annotation {
+            background: #e7f3ff;
+            color: #0066cc;
+        }
+        
+        .config-dynamic {
+            background: #e8f5e8;
+            color: #2d7d2d;
+        }
+        
+        .config-none {
+            background: #f5f5f5;
+            color: #666;
+        }
+        
+        .path-text {
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .method-signature {
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 12px;
+            color: #666;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group input[type="text"] {
+                min-width: auto;
+            }
+            
+            .table {
+                font-size: 12px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">🚦 Smart Rate Limiter</div>
+            <nav class="nav">
+                <a th:href="${basePath + '/dashboard'}">控制台</a>
+                <a href="#" class="active">接口管理</a>
+            </nav>
+            <div class="user-info">
+                <span>欢迎，<span th:text="${currentUser}">Admin</span></span>
+                <button class="logout-btn" onclick="logout()">退出</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="page-header">
+            <div class="page-title">
+                <h1>接口管理</h1>
+                <p>查看和管理所有接口的限流配置</p>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="searchInput">搜索:</label>
+                <input type="text" id="searchInput" placeholder="接口名称、路径或类名" th:value="${search}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="configTypeSelect">配置类型:</label>
+                <select id="configTypeSelect">
+                    <option value="ALL" th:selected="${configType == null or configType == 'ALL'}">全部</option>
+                    <option value="ANNOTATION" th:selected="${configType == 'ANNOTATION'}">注解配置</option>
+                    <option value="DYNAMIC" th:selected="${configType == 'DYNAMIC'}">动态配置</option>
+                    <option value="NONE" th:selected="${configType == 'NONE'}">未配置</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-primary" onclick="applyFilters()">筛选</button>
+            <button class="btn btn-secondary" onclick="refreshEndpoints()">刷新</button>
+        </div>
+
+        <div class="endpoints-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>HTTP方法</th>
+                        <th>请求路径</th>
+                        <th>接口类.方法</th>
+                        <th>配置状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(endpoints)}">
+                        <td colspan="5" class="empty-state">
+                            <div class="icon">🔍</div>
+                            <div>未找到匹配的接口</div>
+                        </td>
+                    </tr>
+                    <tr th:each="endpoint : ${endpoints}">
+                        <td>
+                            <span class="method-badge" 
+                                  th:classappend="'method-' + ${#strings.toLowerCase(endpoint.httpMethod ?: 'unknown')}"
+                                  th:text="${endpoint.httpMethod ?: 'N/A'}">GET</span>
+                        </td>
+                        <td>
+                            <span class="path-text" th:text="${endpoint.path ?: 'N/A'}">N/A</span>
+                        </td>
+                        <td>
+                            <div th:text="${endpoint.className + '.' + endpoint.methodName}">ClassName.methodName</div>
+                            <div class="method-signature" th:text="${endpoint.methodSignature}">方法签名</div>
+                        </td>
+                        <td>
+                            <span class="config-badge" 
+                                  th:classappend="'config-' + ${#strings.toLowerCase(endpoint.effectiveConfigType ?: 'none')}"
+                                  th:text="${endpoint.effectiveConfigType == 'ANNOTATION' ? '注解配置' : 
+                                           endpoint.effectiveConfigType == 'DYNAMIC' ? '动态配置' : '未配置'}">未配置</span>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a th:href="${basePath + '/config/' + endpoint.methodSignature}" 
+                                   class="btn btn-primary btn-sm">配置</a>
+                                <button th:if="${endpoint.hasDynamicConfig}" 
+                                        class="btn btn-danger btn-sm"
+                                        th:onclick="'deleteConfig(\'' + ${endpoint.methodSignature} + '\')'">删除</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                fetch('[[${basePath}]]/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(() => {
+                    window.location.href = '[[${basePath}]]/login';
+                })
+                .catch(error => {
+                    console.error('Logout error:', error);
+                    window.location.href = '[[${basePath}]]/login';
+                });
+            }
+        }
+        
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value;
+            const configType = document.getElementById('configTypeSelect').value;
+            
+            const params = new URLSearchParams();
+            if (search.trim()) {
+                params.append('search', search.trim());
+            }
+            if (configType && configType !== 'ALL') {
+                params.append('configType', configType);
+            }
+            
+            const url = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.location.href = url;
+        }
+        
+        function refreshEndpoints() {
+            fetch('[[${basePath}]]/api/refresh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('接口缓存刷新成功');
+                    location.reload();
+                } else {
+                    alert('刷新失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Refresh error:', error);
+                alert('刷新失败');
+            });
+        }
+        
+        function deleteConfig(methodSignature) {
+            if (confirm('确定要删除该动态配置吗？')) {
+                fetch('[[${basePath}]]/api/config/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'methodSignature=' + encodeURIComponent(methodSignature)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('配置删除成功');
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Delete error:', error);
+                    alert('删除失败');
+                });
+            }
+        }
+        
+        // 回车键搜索
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyFilters();
+            }
+        });
+    </script>
+</body>
+</html>

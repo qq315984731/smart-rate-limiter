@@ -1,0 +1,3 @@
+# Auto-configuration for Smart Rate Limiter
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+io.github.rateLimiter.config.RateLimiterAutoConfiguration

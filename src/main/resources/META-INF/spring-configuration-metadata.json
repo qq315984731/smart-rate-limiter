@@ -1,0 +1,304 @@
+{
+  "groups": [
+    {
+      "name": "smart.rate-limiter",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties",
+      "sourceType": "io.github.rateLimiter.config.RateLimiterProperties",
+      "description": "Configuration properties for Smart Rate Limiter."
+    },
+    {
+      "name": "smart.rate-limiter.cache",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties$Cache",
+      "sourceType": "io.github.rateLimiter.config.RateLimiterProperties",
+      "sourceMethod": "getCache()",
+      "description": "Local cache configuration for rate limiting."
+    },
+    {
+      "name": "smart.rate-limiter.redis",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties$Redis",
+      "sourceType": "io.github.rateLimiter.config.RateLimiterProperties",
+      "sourceMethod": "getRedis()",
+      "description": "Redis-specific configuration for rate limiting."
+    },
+    {
+      "name": "smart.rate-limiter.memory",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties$Memory",
+      "sourceType": "io.github.rateLimiter.config.RateLimiterProperties",
+      "sourceMethod": "getMemory()",
+      "description": "Memory-based storage configuration for rate limiting."
+    },
+    {
+      "name": "smart.rate-limiter.fallback",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties$Fallback",
+      "sourceType": "io.github.rateLimiter.config.RateLimiterProperties",
+      "sourceMethod": "getFallback()",
+      "description": "Fallback behavior configuration for rate limiting."
+    },
+    {
+      "name": "smart.rate-limiter.monitoring",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties$Monitoring",
+      "sourceType": "io.github.rateLimiter.config.RateLimiterProperties",
+      "sourceMethod": "getMonitoring()",
+      "description": "Monitoring and metrics configuration for rate limiting."
+    }
+  ],
+  "properties": [
+    {
+      "name": "smart.rate-limiter.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether rate limiting is enabled globally.",
+      "defaultValue": true
+    },
+    {
+      "name": "smart.rate-limiter.storage-type",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties$StorageType",
+      "description": "Storage type for rate limiting data (redis, memory, hybrid).",
+      "defaultValue": "redis"
+    },
+    {
+      "name": "smart.rate-limiter.default-algorithm",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties$DefaultAlgorithm",
+      "description": "Default algorithm to use when not specified in annotation.",
+      "defaultValue": "sliding-window"
+    },
+    {
+      "name": "smart.rate-limiter.global-conflict-strategy",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties$ConflictStrategy",
+      "description": "Global conflict resolution strategy for GLOBAL dimension.",
+      "defaultValue": "most-restrictive"
+    },
+    {
+      "name": "smart.rate-limiter.include-method-signature",
+      "type": "java.lang.Boolean",
+      "description": "Whether to include method signature in rate limit keys.",
+      "defaultValue": true
+    },
+    {
+      "name": "smart.rate-limiter.include-http-method",
+      "type": "java.lang.Boolean",
+      "description": "Whether to include HTTP method in rate limit keys.",
+      "defaultValue": false
+    },
+    {
+      "name": "smart.rate-limiter.user-id-resolver",
+      "type": "java.lang.String",
+      "description": "Custom user ID resolver bean name."
+    },
+    {
+      "name": "smart.rate-limiter.ip-resolver",
+      "type": "java.lang.String",
+      "description": "Custom IP resolver bean name."
+    },
+    {
+      "name": "smart.rate-limiter.cache.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable local caching.",
+      "defaultValue": true
+    },
+    {
+      "name": "smart.rate-limiter.cache.max-size",
+      "type": "java.lang.Long",
+      "description": "Maximum cache size.",
+      "defaultValue": 10000
+    },
+    {
+      "name": "smart.rate-limiter.cache.expire-after-write",
+      "type": "java.time.Duration",
+      "description": "Cache expiration time after write.",
+      "defaultValue": "1m"
+    },
+    {
+      "name": "smart.rate-limiter.cache.expire-after-access",
+      "type": "java.time.Duration",
+      "description": "Cache expiration time after access.",
+      "defaultValue": "5m"
+    },
+    {
+      "name": "smart.rate-limiter.cache.initial-capacity",
+      "type": "java.lang.Integer",
+      "description": "Initial cache capacity.",
+      "defaultValue": 1000
+    },
+    {
+      "name": "smart.rate-limiter.redis.key-prefix",
+      "type": "java.lang.String",
+      "description": "Key prefix for all rate limit keys.",
+      "defaultValue": "smart:rate_limit:"
+    },
+    {
+      "name": "smart.rate-limiter.redis.key-separator",
+      "type": "java.lang.String",
+      "description": "Key separator.",
+      "defaultValue": ":"
+    },
+    {
+      "name": "smart.rate-limiter.redis.script-cache-size",
+      "type": "java.lang.Integer",
+      "description": "Lua script cache size.",
+      "defaultValue": 100
+    },
+    {
+      "name": "smart.rate-limiter.redis.timeout",
+      "type": "java.time.Duration",
+      "description": "Connection timeout.",
+      "defaultValue": "1s"
+    },
+    {
+      "name": "smart.rate-limiter.redis.use-lua-scripts",
+      "type": "java.lang.Boolean",
+      "description": "Whether to use Redis Lua scripts for atomic operations.",
+      "defaultValue": true
+    },
+    {
+      "name": "smart.rate-limiter.redis.database",
+      "type": "java.lang.Integer",
+      "description": "Redis database index.",
+      "defaultValue": 0
+    },
+    {
+      "name": "smart.rate-limiter.memory.max-size",
+      "type": "java.lang.Long",
+      "description": "Maximum number of rate limit records to keep in memory.",
+      "defaultValue": 100000
+    },
+    {
+      "name": "smart.rate-limiter.memory.expire-after-access",
+      "type": "java.time.Duration",
+      "description": "How long to keep unused rate limit records.",
+      "defaultValue": "10m"
+    },
+    {
+      "name": "smart.rate-limiter.memory.cleanup-interval",
+      "type": "java.time.Duration",
+      "description": "Cleanup interval for expired records.",
+      "defaultValue": "1m"
+    },
+    {
+      "name": "smart.rate-limiter.fallback.on-error",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties$Fallback$ErrorBehavior",
+      "description": "Behavior when rate limiting encounters errors (allow, reject).",
+      "defaultValue": "allow"
+    },
+    {
+      "name": "smart.rate-limiter.fallback.on-redis-unavailable",
+      "type": "io.github.rateLimiter.config.RateLimiterProperties$Fallback$FallbackStorage",
+      "description": "Behavior when Redis is unavailable (memory, allow-all, reject-all).",
+      "defaultValue": "memory"
+    },
+    {
+      "name": "smart.rate-limiter.fallback.max-errors",
+      "type": "java.lang.Integer",
+      "description": "Maximum errors before switching to fallback mode.",
+      "defaultValue": 5
+    },
+    {
+      "name": "smart.rate-limiter.fallback.recovery-interval",
+      "type": "java.time.Duration",
+      "description": "Recovery check interval.",
+      "defaultValue": "1m"
+    },
+    {
+      "name": "smart.rate-limiter.monitoring.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable metrics collection.",
+      "defaultValue": false
+    },
+    {
+      "name": "smart.rate-limiter.monitoring.include-detailed-tags",
+      "type": "java.lang.Boolean",
+      "description": "Whether to include detailed tags in metrics.",
+      "defaultValue": false
+    }
+  ],
+  "hints": [
+    {
+      "name": "smart.rate-limiter.storage-type",
+      "values": [
+        {
+          "value": "redis",
+          "description": "Use Redis for distributed rate limiting."
+        },
+        {
+          "value": "memory",
+          "description": "Use in-memory storage (single instance only)."
+        },
+        {
+          "value": "hybrid",
+          "description": "Hybrid: Redis primary, memory fallback."
+        }
+      ]
+    },
+    {
+      "name": "smart.rate-limiter.default-algorithm",
+      "values": [
+        {
+          "value": "sliding-window",
+          "description": "Sliding window counter - most accurate, moderate performance."
+        },
+        {
+          "value": "fixed-window",
+          "description": "Fixed window counter - high performance, possible burst at boundaries."
+        },
+        {
+          "value": "token-bucket",
+          "description": "Token bucket - allows burst traffic, smooth average rate."
+        },
+        {
+          "value": "leaky-bucket",
+          "description": "Leaky bucket - strict rate enforcement, traffic shaping."
+        }
+      ]
+    },
+    {
+      "name": "smart.rate-limiter.global-conflict-strategy",
+      "values": [
+        {
+          "value": "most-restrictive",
+          "description": "Use the most restrictive configuration."
+        },
+        {
+          "value": "least-restrictive",
+          "description": "Use the least restrictive configuration."
+        },
+        {
+          "value": "first-discovered",
+          "description": "Use the first discovered configuration."
+        },
+        {
+          "value": "fail-fast",
+          "description": "Fail fast on conflicting configurations."
+        }
+      ]
+    },
+    {
+      "name": "smart.rate-limiter.fallback.on-error",
+      "values": [
+        {
+          "value": "allow",
+          "description": "Allow the request when error occurs."
+        },
+        {
+          "value": "reject",
+          "description": "Reject the request when error occurs."
+        }
+      ]
+    },
+    {
+      "name": "smart.rate-limiter.fallback.on-redis-unavailable",
+      "values": [
+        {
+          "value": "memory",
+          "description": "Use in-memory storage as fallback."
+        },
+        {
+          "value": "allow-all",
+          "description": "Allow all requests when primary storage fails."
+        },
+        {
+          "value": "reject-all",
+          "description": "Reject all requests when primary storage fails."
+        }
+      ]
+    }
+  ]
+}

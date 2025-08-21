@@ -1,0 +1,385 @@
+# Smart Rate Limiter 完整配置示例
+# 这是一个包含所有可用配置选项的完整示例
+
+# ============================================================================
+# 🎯 限流核心配置 (smart.rate-limiter)
+# ============================================================================
+smart:
+  rate-limiter:
+    # 是否启用限流功能（默认：true）
+    enabled: true
+    
+    # 存储类型：redis(分布式), memory(单机), hybrid(混合)
+    storage-type: hybrid
+    
+    # 默认限流算法：sliding-window, fixed-window, token-bucket, leaky-bucket
+    default-algorithm: sliding-window
+    
+    # Key前缀，用于Redis存储
+    key-prefix: "smart:rate_limit:"
+    
+    # 是否在Key中包含完整方法签名（默认：false）
+    include-method-signature: true
+    
+    # 冲突解决策略：most-restrictive, least-restrictive, first-discovered, fail-fast
+    conflict-strategy: most-restrictive
+    
+    # ----------------------------------------------------------------------------
+    # 🚀 本地缓存配置 - 提升性能
+    # ----------------------------------------------------------------------------
+    cache:
+      # 是否启用本地缓存
+      enabled: true
+      # 缓存最大大小
+      max-size: 10000
+      # 写入后过期时间（PT1M = 1分钟，PT5M = 5分钟，PT1H = 1小时）
+      expire-after-write: PT1M
+      # 访问后过期时间（支持格式：PT30S=30秒，PT5M=5分钟，PT1H=1小时，PT1D=1天）
+      expire-after-access: PT5M
+      # 初始容量
+      initial-capacity: 1000
+    
+    # ----------------------------------------------------------------------------
+    # 📦 Redis存储配置
+    # ----------------------------------------------------------------------------
+    redis:
+      # Redis Key前缀
+      key-prefix: "smart:rate_limit:"
+      # Key分隔符
+      key-separator: ":"
+      # Lua脚本缓存大小
+      script-cache-size: 100
+      # Redis连接超时（PT1S = 1秒）
+      timeout: PT1S
+      # 是否使用Lua脚本（推荐）
+      use-lua-scripts: true
+      # Redis数据库索引
+      database: 0
+    
+    # ----------------------------------------------------------------------------
+    # 💾 内存存储配置
+    # ----------------------------------------------------------------------------
+    memory:
+      # 内存中最大限流记录数
+      max-size: 100000
+      # 记录过期时间（PT10M = 10分钟）
+      expire-after-access: PT10M
+      # 清理过期记录的间隔（PT1M = 1分钟）
+      cleanup-interval: PT1M
+    
+    # ----------------------------------------------------------------------------
+    # 🛡️ 容错和降级配置
+    # ----------------------------------------------------------------------------
+    fallback:
+      # 出错时的行为：allow(放行), reject(拒绝)
+      on-error: allow
+      # Redis不可用时：memory(内存模式), allow_all(全部放行), reject_all(全部拒绝)
+      on-redis-unavailable: memory
+      # 触发降级的最大错误数
+      max-errors: 5
+      # 错误恢复检查间隔（PT1M = 1分钟）
+      recovery-interval: PT1M
+    
+    # ----------------------------------------------------------------------------
+    # 📈 监控和指标配置
+    # ----------------------------------------------------------------------------
+    monitoring:
+      # 是否启用监控指标收集
+      enabled: true
+      # 要收集的指标类型
+      metrics:
+        - REQUESTS_TOTAL      # 总请求数
+        - REQUESTS_ALLOWED    # 允许的请求数
+        - REQUESTS_REJECTED   # 被拒绝的请求数
+        - CHECK_DURATION      # 检查耗时
+        - RATE_LIMIT_STATE    # 限流状态
+      # 是否包含详细标签（维度、算法等）
+      include-detailed-tags: true
+
+# ============================================================================
+# 🎛️ 管理页面配置 (rate-limiter.admin)
+# ============================================================================
+rate-limiter:
+  admin:
+    # 是否启用管理页面
+    enabled: true
+    # 管理页面访问路径
+    base-path: /admin/rate-limiter
+    # 登录用户名
+    username: admin
+    # 登录密码（建议使用环境变量）
+    password: ${RATE_LIMITER_PASSWORD:admin123}
+    # 会话超时时间（分钟）
+    session-timeout: 30
+    
+    # --------------------------------------------------------------------------
+    # 🔒 安全配置
+    # --------------------------------------------------------------------------
+    security:
+      # 是否启用安全头检查
+      enable-header-check: true
+      # 自定义安全头名称
+      header-name: X-RateLimit-Token
+      # 自定义安全头值
+      header-value: ${RATE_LIMITER_TOKEN:secure-token-123}
+      # IP白名单（CIDR格式，逗号分隔）
+      allowed-ips: "192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,127.0.0.1"
+    
+    # --------------------------------------------------------------------------
+    # 🔍 接口发现和过滤配置
+    # --------------------------------------------------------------------------
+    discovery:
+      # 是否排除管理页面本身的接口
+      exclude-admin-endpoints: true
+      # 是否排除Spring Boot Actuator端点
+      exclude-actuator-endpoints: true
+      # 是否排除错误处理端点
+      exclude-error-endpoints: true
+      # 是否排除静态资源端点
+      exclude-static-resource-endpoints: true
+      
+      # 排除的包名前缀（逗号分隔）
+      exclude-packages: |
+        org.springframework.boot,
+        org.springframework.cloud,
+        org.springframework.security,
+        com.example.internal,
+        com.example.test
+      
+      # 排除的路径前缀（逗号分隔）
+      exclude-paths: |
+        /favicon.ico,
+        /robots.txt,
+        /health,
+        /metrics,
+        /actuator,
+        /swagger-ui,
+        /api-docs
+      
+      # 排除包含特定关键字的Controller（逗号分隔）
+      exclude-controller-keywords: |
+        BasicErrorController,
+        ErrorController,
+        SwaggerController,
+        ActuatorController,
+        InternalController
+    
+    # --------------------------------------------------------------------------
+    # 📝 操作日志配置
+    # --------------------------------------------------------------------------
+    logging:
+      # 是否启用文件日志输出
+      file-enabled: true
+      # 日志文件路径
+      file-path: "./logs/rate-limiter/operations.log"
+      # 是否使用JSON格式
+      json-format: true
+      # 单个日志文件最大大小
+      max-file-size: "50MB"
+      # 日志文件保留天数
+      max-history: 30
+      # 是否异步写入日志
+      async: true
+      # 异步日志队列大小
+      async-queue-size: 2000
+      # 是否记录详细的请求信息
+      include-request-details: true
+      # 是否记录限流配置详情
+      include-config-details: true
+      # 日志级别过滤
+      log-level: "INFO"
+      # 自定义日志格式模板
+      custom-pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    
+    # --------------------------------------------------------------------------
+    # 🔄 接口扫描策略配置
+    # --------------------------------------------------------------------------
+    scanning:
+      # 扫描策略：sync(同步), async(异步), disabled(禁用)
+      strategy: async
+      # 异步扫描延迟启动时间（分钟）
+      async-delay-minutes: 5
+      # 定期扫描间隔时间（分钟）
+      interval-minutes: 30
+      # 是否在应用启动时立即执行一次扫描
+      scan-on-startup: false
+      # 是否启用智能扫描（根据系统负载自动调整频率）
+      smart-scan: true
+      # 扫描任务线程池大小
+      thread-pool-size: 2
+      # 单次扫描任务超时时间（秒）
+      timeout-seconds: 60
+      # 是否启用扫描结果缓存
+      enable-cache: true
+      # 扫描缓存过期时间（分钟）
+      cache-expire-minutes: 15
+      # 最大扫描深度（包层级数）
+      max-scan-depth: 10
+      
+      # 排除扫描的包名模式（支持通配符 *）
+      exclude-packages:
+        - "org.springframework.*"
+        - "org.apache.*"
+        - "com.sun.*"
+        - "java.*"
+        - "javax.*"
+        - "kotlin.*"
+        - "scala.*"
+        - "groovy.*"
+        - "com.example.test.*"
+        - "com.example.internal.*"
+      
+      # 只扫描指定的包名模式（空列表则扫描所有，支持通配符）
+      include-packages:
+        - "com.yourcompany.api.*"
+        - "com.yourcompany.controller.*"
+        - "com.yourcompany.service.*"
+
+# ============================================================================
+# 🌊 Spring Boot 相关配置
+# ============================================================================
+
+# Redis配置（如果使用Redis存储）
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 2
+          max-wait: 2000ms
+
+# 服务器配置
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: ${CONTEXT_PATH:}
+
+# ============================================================================
+# 📊 Spring Boot Actuator 监控配置
+# ============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        # 暴露的监控端点
+        include: health,info,metrics,prometheus,rate-limiter
+      # 监控端点路径
+      base-path: /actuator
+  
+  endpoint:
+    health:
+      # 显示健康检查详情
+      show-details: always
+      # 健康检查组件
+      show-components: always
+    
+    # 自定义rate-limiter监控端点
+    rate-limiter:
+      enabled: true
+  
+  # 指标配置
+  metrics:
+    export:
+      # Prometheus指标导出
+      prometheus:
+        enabled: true
+        descriptions: true
+      # 简单指标导出
+      simple:
+        enabled: true
+    
+    # 指标标签
+    tags:
+      application: ${spring.application.name:rate-limiter-app}
+      environment: ${ENVIRONMENT:development}
+    
+    # Web指标
+    web:
+      server:
+        request:
+          autotime:
+            enabled: true
+
+# ============================================================================
+# 📋 日志配置
+# ============================================================================
+logging:
+  # 日志级别配置
+  level:
+    root: INFO
+    io.github.rateLimiter: DEBUG
+    org.springframework.data.redis: WARN
+    
+  # 日志格式
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  
+  # 日志文件配置
+  file:
+    name: "./logs/application.log"
+    max-size: "100MB"
+    max-history: 30
+
+# ============================================================================
+# 🔧 JVM和性能调优配置
+# ============================================================================
+
+# JVM参数建议（在启动脚本中设置）
+# -Xms512m -Xmx2g
+# -XX:+UseG1GC
+# -XX:MaxGCPauseMillis=200
+# -XX:+PrintGCDetails
+# -XX:+PrintGCTimeStamps
+# -Dfile.encoding=UTF-8
+# -Djava.security.egd=file:/dev/./urandom
+
+# ============================================================================
+# 🌍 环境变量配置示例
+# ============================================================================
+
+# 在生产环境中，建议使用环境变量覆盖敏感配置：
+# export RATE_LIMITER_PASSWORD="your_secure_password_here"
+# export RATE_LIMITER_TOKEN="your_secure_token_here"
+# export REDIS_HOST="your_redis_host"
+# export REDIS_PASSWORD="your_redis_password"
+# export SERVER_PORT="8080"
+# export ENVIRONMENT="production"
+
+# ============================================================================
+# 📚 配置说明
+# ============================================================================
+
+# 1. 生产环境建议：
+#    - 使用 hybrid 存储模式
+#    - 启用异步扫描，延迟5分钟
+#    - 设置强密码和IP白名单
+#    - 启用操作日志记录
+#    - 配置监控和告警
+
+# 2. 开发环境建议：
+#    - 使用 memory 存储模式
+#    - 启用同步扫描
+#    - 简化安全配置
+#    - 详细的调试日志
+
+# 3. 性能优化建议：
+#    - 启用本地缓存
+#    - 合理设置缓存过期时间
+#    - 使用 Lua 脚本减少 Redis 交互
+#    - 配置合适的线程池大小
+
+# 4. 时间格式说明（ISO-8601 Duration格式）：
+#    - PT30S  = 30秒
+#    - PT1M   = 1分钟
+#    - PT5M   = 5分钟
+#    - PT1H   = 1小时
+#    - PT1D   = 1天
+#    - P1W    = 1周
