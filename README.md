@@ -6,7 +6,7 @@
 [![Spring Boot 3.x](https://img.shields.io/badge/Spring%20Boot-3.x-green.svg)](https://spring.io/projects/spring-boot)
 
 智能限流器 - 一个功能强大、易于使用的 Spring Boot 限流组件，支持多种算法、多维度限流和动态配置管理。
-
+没有上传到maven仓库，fork代码编译使用
 ## ✨ 特性
 
 - 🎯 **多种限流算法**：滑动窗口、固定窗口、令牌桶、漏桶
@@ -36,7 +36,7 @@
 
 ```xml
 <dependency>
-    <groupId>io.github</groupId>
+    <groupId>com.twjgs</groupId>
     <artifactId>smart-rate-limiter-spring-boot-starter</artifactId>
     <version>1.0.0</version>
 </dependency>

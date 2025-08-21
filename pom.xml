@@ -5,14 +5,14 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github</groupId>
+    <groupId>com.twjgs</groupId>
     <artifactId>smart-rate-limiter-spring-boot-starter</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>Smart Rate Limiter Spring Boot Starter</name>
     <description>A comprehensive and intelligent rate limiting library for Spring Boot applications</description>
-    <url>https://github.com/qq315984731/smart-rate-limiter</url>
+    <url>https://github.com/lisofa/smart-rate-limiter</url>
 
     <licenses>
         <license>
@@ -32,18 +32,23 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/qq315984731/smart-rate-limiter.git</connection>
-        <developerConnection>scm:git:ssh://github.com:qq315984731/smart-rate-limiter.git</developerConnection>
-        <url>https://github.com/qq315984731/smart-rate-limiter/tree/master</url>
+        <connection>scm:git:git://github.com/lisofa/smart-rate-limiter.git</connection>
+        <developerConnection>scm:git:ssh://github.com:lisofa/smart-rate-limiter.git</developerConnection>
+        <url>https://github.com/lisofa/smart-rate-limiter/tree/master</url>
     </scm>
 
-    <!-- GitHub Packages 发布配置 -->
+    <!-- 使用Central Portal Publishing API -->
     <distributionManagement>
         <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/qq315984731/smart-rate-limiter</url>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC</url>
         </repository>
+        <snapshotRepository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <properties>
@@ -63,6 +68,7 @@
         <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
         <maven-surefire-plugin.version>3.2.2</maven-surefire-plugin.version>
+        <maven-gpg-plugin.version>3.1.0</maven-gpg-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -235,6 +241,71 @@
                     <skip>true</skip>
                 </configuration>
             </plugin>
+
         </plugins>
+
+        <!-- Add HTTP Wagon for Central Portal API -->
+        <extensions>
+            <extension>
+                <groupId>org.apache.maven.wagon</groupId>
+                <artifactId>wagon-http</artifactId>
+                <version>3.5.3</version>
+            </extension>
+        </extensions>
     </build>
+
+    <!-- Profiles for different deployment targets -->
+    <profiles>
+        <!-- Maven Central Repository -->
+        <profile>
+            <id>central</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${maven-gpg-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Aliyun Maven Repository -->
+        <profile>
+            <id>aliyun</id>
+            <distributionManagement>
+                <repository>
+                    <id>rdc-releases</id>
+                    <name>Aliyun Maven Repository</name>
+                    <url>https://packages.aliyun.com/maven/repository/your-repo-id/</url>
+                </repository>
+                <snapshotRepository>
+                    <id>rdc-snapshots</id>
+                    <name>Aliyun Maven Snapshot Repository</name>
+                    <url>https://packages.aliyun.com/maven/repository/your-repo-id/</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+
+        <!-- GitHub Packages -->
+        <profile>
+            <id>github</id>
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <name>GitHub Packages</name>
+                    <url>https://maven.pkg.github.com/lisofa/smart-rate-limiter</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+    </profiles>
 </project>

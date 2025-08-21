@@ -1,1 +1,1 @@
-io.github.rateLimiter.config.RateLimiterAutoConfiguration
+com.twjgs.ratelimiter.config.RateLimiterAutoConfiguration
