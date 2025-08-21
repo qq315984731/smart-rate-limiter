@@ -2,9 +2,26 @@
   "permissions": {
     "allow": [
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(mvn clean:*)",
+      "Bash(mvn test:*)",
+      "Bash(mvn:*)",
+      "Bash(gpg:*)",
+      "Bash(echo $HOME)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(tar:*)",
+      "Bash(find:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "D:\\d\\code"
+    ]
   }
 }
