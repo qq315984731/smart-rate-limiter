@@ -85,11 +85,9 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                 // Check if config is expired
                 if (dynamicConfig.getTemporary() && dynamicConfig.getExpireTime() != null && 
                     dynamicConfig.getExpireTime().isBefore(java.time.LocalDateTime.now())) {
-                    log.debug("Dynamic config for method {} has expired, removing it", methodSignature);
                     dynamicConfigService.deleteDynamicConfig(methodSignature, "SYSTEM");
                     dynamicConfig = null;
                 } else {
-                    log.debug("Applying dynamic rate limit config for method: {}", methodSignature);
                     return handleDynamicRateLimit(request, response, handlerMethod, dynamicConfig);
                 }
             }
@@ -302,7 +300,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         if (context.getStrategy() == RateLimit.LimitStrategy.QUEUE) {
             try {
                 Thread.sleep(context.getQueueTimeout());
-                log.debug("Queue wait completed for key: {}", context.getKey());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RateLimitException("Request timeout while waiting in queue", e);
@@ -365,7 +362,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         try {
             return userIdResolver.resolveUserId(request);
         } catch (Exception e) {
-            log.debug("Failed to resolve user ID: {}", e.getMessage());
             return null;
         }
     }

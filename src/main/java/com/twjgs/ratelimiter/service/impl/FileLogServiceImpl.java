@@ -21,7 +21,6 @@ import java.time.format.DateTimeFormatter;
  * @author RateLimiter Team
  * @since 1.0.0
  */
-@Service
 public class FileLogServiceImpl implements FileLogService {
     
     private static final Logger log = LoggerFactory.getLogger(FileLogServiceImpl.class);

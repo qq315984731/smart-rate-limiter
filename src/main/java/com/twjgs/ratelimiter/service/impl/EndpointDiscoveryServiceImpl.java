@@ -1,6 +1,8 @@
 package com.twjgs.ratelimiter.service.impl;
 
 import com.twjgs.ratelimiter.annotation.RateLimit;
+import com.twjgs.ratelimiter.annotation.Idempotent;
+import com.twjgs.ratelimiter.annotation.DuplicateSubmit;
 import com.twjgs.ratelimiter.config.RateLimiterAdminProperties;
 import com.twjgs.ratelimiter.model.DynamicRateLimitConfig;
 import com.twjgs.ratelimiter.model.EndpointInfo;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * 接口发现服务实现
@@ -24,7 +27,6 @@ import java.util.stream.Collectors;
  * @since 1.0.0
  */
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class EndpointDiscoveryServiceImpl implements EndpointDiscoveryService {
     
@@ -32,17 +34,36 @@ public class EndpointDiscoveryServiceImpl implements EndpointDiscoveryService {
     private final DynamicConfigService dynamicConfigService;
     private final RateLimiterAdminProperties adminProperties;
     
-    private List<EndpointInfo> cachedEndpoints;
-    private long lastRefreshTime = 0;
+    private volatile List<EndpointInfo> cachedEndpoints;
+    private volatile long lastRefreshTime = 0;
     private static final long CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
+    
+    // 读写锁保证线程安全
+    private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock();
     
     @Override
     public List<EndpointInfo> discoverAllEndpoints() {
-        // 检查缓存是否需要刷新
-        if (cachedEndpoints == null || System.currentTimeMillis() - lastRefreshTime > CACHE_DURATION) {
-            refreshCache();
+        // 使用读锁检查缓存
+        cacheLock.readLock().lock();
+        try {
+            if (cachedEndpoints != null && System.currentTimeMillis() - lastRefreshTime <= CACHE_DURATION) {
+                return new ArrayList<>(cachedEndpoints);
+            }
+        } finally {
+            cacheLock.readLock().unlock();
         }
-        return new ArrayList<>(cachedEndpoints);
+        
+        // 需要刷新缓存，使用写锁
+        cacheLock.writeLock().lock();
+        try {
+            // 双重检查
+            if (cachedEndpoints == null || System.currentTimeMillis() - lastRefreshTime > CACHE_DURATION) {
+                refreshCacheInternal();
+            }
+            return cachedEndpoints != null ? new ArrayList<>(cachedEndpoints) : new ArrayList<>();
+        } finally {
+            cacheLock.writeLock().unlock();
+        }
     }
     
     @Override
@@ -120,8 +141,16 @@ public class EndpointDiscoveryServiceImpl implements EndpointDiscoveryService {
     
     @Override
     public void refreshCache() {
+        cacheLock.writeLock().lock();
         try {
-            log.info("Refreshing endpoint discovery cache...");
+            refreshCacheInternal();
+        } finally {
+            cacheLock.writeLock().unlock();
+        }
+    }
+    
+    private void refreshCacheInternal() {
+        try {
             
             List<EndpointInfo> endpoints = new ArrayList<>();
             
@@ -135,7 +164,6 @@ public class EndpointDiscoveryServiceImpl implements EndpointDiscoveryService {
                 
                 // 过滤管理页面相关的Controller
                 if (shouldExcludeController(controllerClass)) {
-                    log.debug("Excluding controller: {}", controllerClass.getName());
                     continue;
                 }
                 
@@ -156,11 +184,10 @@ public class EndpointDiscoveryServiceImpl implements EndpointDiscoveryService {
                 }
             }
             
-            // 更新缓存
+            // 更新缓存（已在写锁保护下）
             this.cachedEndpoints = endpoints;
             this.lastRefreshTime = System.currentTimeMillis();
             
-            log.info("Endpoint discovery cache refreshed, found {} endpoints", endpoints.size());
             
         } catch (Exception e) {
             log.error("Failed to refresh endpoint discovery cache", e);
@@ -232,9 +259,26 @@ public class EndpointDiscoveryServiceImpl implements EndpointDiscoveryService {
         RateLimit rateLimitAnnotation = method.getAnnotation(RateLimit.class);
         if (rateLimitAnnotation != null) {
             endpointInfo.setRateLimitAnnotation(rateLimitAnnotation);
+            endpointInfo.setHasRateLimitAnnotation(true);
             endpointInfo.setHasAnnotation(true);
             endpointInfo.setEffectiveConfigType("ANNOTATION");
             endpointInfo.setEffectiveConfig(rateLimitAnnotation);
+        }
+        
+        // 检查是否有Idempotent注解
+        Idempotent idempotentAnnotation = method.getAnnotation(Idempotent.class);
+        if (idempotentAnnotation != null) {
+            endpointInfo.setIdempotentAnnotation(idempotentAnnotation);
+            endpointInfo.setHasIdempotentAnnotation(true);
+            endpointInfo.setHasAnnotation(true);
+        }
+        
+        // 检查是否有DuplicateSubmit注解
+        DuplicateSubmit duplicateSubmitAnnotation = method.getAnnotation(DuplicateSubmit.class);
+        if (duplicateSubmitAnnotation != null) {
+            endpointInfo.setDuplicateSubmitAnnotation(duplicateSubmitAnnotation);
+            endpointInfo.setHasDuplicateSubmitAnnotation(true);
+            endpointInfo.setHasAnnotation(true);
         }
         
         // 检查是否有动态配置
@@ -276,12 +320,18 @@ public class EndpointDiscoveryServiceImpl implements EndpointDiscoveryService {
      */
     private boolean shouldExcludeController(Class<?> controllerClass) {
         String className = controllerClass.getName();
+        String simpleClassName = controllerClass.getSimpleName();
         RateLimiterAdminProperties.Discovery discovery = adminProperties.getDiscovery();
         
-        // 排除限流管理相关的Controller
-        if (discovery.isExcludeAdminEndpoints() && 
-            (className.contains("RateLimiterManagement") || className.contains("rateLimiter.controller"))) {
-            return true;
+        // 排除限流管理相关的Controller - 更严格的过滤条件
+        if (discovery.isExcludeAdminEndpoints()) {
+            // 排除RateLimiterManagementController及其相关类
+            if (className.contains("RateLimiterManagement") || 
+                className.contains("rateLimiter.controller") ||
+                simpleClassName.equals("RateLimiterManagementController") ||
+                className.startsWith("com.twjgs.ratelimiter.controller")) {
+                return true;
+            }
         }
         
         // 排除自定义包名前缀
@@ -297,7 +347,6 @@ public class EndpointDiscoveryServiceImpl implements EndpointDiscoveryService {
         // 排除包含指定关键字的Controller
         if (discovery.getExcludeControllerKeywords() != null && !discovery.getExcludeControllerKeywords().trim().isEmpty()) {
             String[] keywords = discovery.getExcludeControllerKeywords().split(",");
-            String simpleClassName = controllerClass.getSimpleName();
             for (String keyword : keywords) {
                 if (simpleClassName.contains(keyword.trim())) {
                     return true;

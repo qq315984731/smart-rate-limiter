@@ -8,26 +8,72 @@ import java.lang.annotation.*;
  * <p>Supports multiple limiting dimensions, algorithms, and strategies.
  * Can be used alone or combined with {@link MultiRateLimit} for complex scenarios.
  * 
- * <h3>Basic Usage:</h3>
+ * <h3>Basic Usage Examples:</h3>
  * <pre>{@code
+ * // GET请求 - 基于IP限流
  * @RateLimit(permits = 10, window = 60)
- * public void myMethod() {
- *     // This method allows max 10 calls per 60 seconds globally
+ * @GetMapping("/api/data")
+ * public DataResult getData(@RequestParam String type) {
+ *     return dataService.query(type);
  * }
- * }</pre>
  * 
- * <h3>Advanced Usage:</h3>
- * <pre>{@code
+ * // POST请求 - 基于用户限流
  * @RateLimit(
  *     dimension = LimitDimension.USER,
  *     permits = 5, 
- *     window = 10,
- *     algorithm = LimitAlgorithm.TOKEN_BUCKET,
- *     strategy = LimitStrategy.QUEUE,
- *     message = "Too many requests, please wait"
+ *     window = 60,
+ *     message = "操作过于频繁，请稍后再试"
  * )
- * public void sensitiveOperation() {
- *     // Per-user limiting with token bucket and queue strategy
+ * @PostMapping("/api/upload")
+ * public UploadResult upload(@RequestBody UploadRequest request) {
+ *     return uploadService.process(request);
+ * }
+ * }</pre>
+ * 
+ * <h3>Advanced Usage Examples:</h3>
+ * <pre>{@code
+ * // POST请求 - 自定义维度，基于用户ID+业务类型限流
+ * @RateLimit(
+ *     dimension = LimitDimension.CUSTOM,
+ *     keyExpression = "#userId + ':' + #request.businessType",  // 访问@RequestBody中的字段
+ *     permits = 3,
+ *     window = 300,
+ *     algorithm = LimitAlgorithm.TOKEN_BUCKET,
+ *     message = "该业务操作限流中"
+ * )
+ * @PostMapping("/api/business")
+ * public BusinessResult processBusiness(@RequestBody BusinessRequest request) {
+ *     return businessService.process(request);
+ * }
+ * 
+ * // POST表单提交 - 基于表单参数的自定义限流
+ * @RateLimit(
+ *     dimension = LimitDimension.CUSTOM,
+ *     keyExpression = "#ip + ':order:' + #orderType",  // 访问@RequestParam参数
+ *     permits = 10,
+ *     window = 60,
+ *     strategy = LimitStrategy.QUEUE,
+ *     queueTimeout = 2000L,
+ *     message = "订单提交限流中，请稍候"
+ * )
+ * @PostMapping("/api/order")
+ * public OrderResult createOrder(@RequestParam String orderType,
+ *                               @RequestParam BigDecimal amount) {
+ *     return orderService.create(orderType, amount);
+ * }
+ * 
+ * // 复杂限流策略 - 多维度组合
+ * @RateLimit(
+ *     dimension = LimitDimension.CUSTOM,
+ *     keyExpression = "#request.tenantId + ':api:' + #methodName + ':user:' + #userId",
+ *     permits = 100,
+ *     window = 3600,  // 每小时100次
+ *     algorithm = LimitAlgorithm.SLIDING_WINDOW,
+ *     message = "租户API调用频率超限"
+ * )
+ * @PostMapping("/api/tenant/operation")
+ * public TenantResult tenantOperation(@RequestBody TenantRequest request) {
+ *     return tenantService.process(request);
  * }
  * }</pre>
  * 

@@ -9,7 +9,7 @@ package com.twjgs.ratelimiter.exception;
  * @author Smart Rate Limiter Team
  * @since 1.0.0
  */
-public class RateLimitException extends RuntimeException {
+public class RateLimitException extends ApiProtectionException {
 
     private final String limitKey;
     private final int permits;
@@ -24,7 +24,7 @@ public class RateLimitException extends RuntimeException {
      * @param message the error message
      */
     public RateLimitException(String message) {
-        super(message);
+        super(message, "RATE_LIMIT_EXCEEDED");
         this.limitKey = null;
         this.permits = -1;
         this.windowSeconds = -1;
@@ -40,7 +40,7 @@ public class RateLimitException extends RuntimeException {
      * @param cause the underlying cause
      */
     public RateLimitException(String message, Throwable cause) {
-        super(message, cause);
+        super(message, "RATE_LIMIT_EXCEEDED", cause);
         this.limitKey = null;
         this.permits = -1;
         this.windowSeconds = -1;
@@ -67,7 +67,7 @@ public class RateLimitException extends RuntimeException {
                              String algorithm, 
                              String dimension, 
                              Long retryAfterSeconds) {
-        super(message);
+        super(message, "RATE_LIMIT_EXCEEDED");
         this.limitKey = limitKey;
         this.permits = permits;
         this.windowSeconds = windowSeconds;
@@ -147,5 +147,21 @@ public class RateLimitException extends RuntimeException {
         } else {
             return String.format("RateLimitException: %s", getMessage());
         }
+    }
+    
+    @Override
+    public String getErrorType() {
+        return "RATE_LIMIT";
+    }
+    
+    @Override
+    public int getHttpStatus() {
+        return 429; // Too Many Requests
+    }
+    
+    @Override
+    public boolean shouldLogError() {
+        // 限流异常通常不需要记录错误日志，只需要记录警告
+        return false;
     }
 }

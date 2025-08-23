@@ -2,9 +2,14 @@ package com.twjgs.ratelimiter;
 
 import com.twjgs.ratelimiter.annotation.MultiRateLimit;
 import com.twjgs.ratelimiter.annotation.RateLimit;
+import com.twjgs.ratelimiter.annotation.DuplicateSubmit;
+import com.twjgs.ratelimiter.annotation.Idempotent;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Import;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -14,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @since 1.0.0
  */
 @SpringBootApplication
+@Import(TestConfiguration.class)
 public class TestApplication {
 
     public static void main(String[] args) {
@@ -144,6 +150,104 @@ public class TestApplication {
         @GetMapping("/api/unlimited")
         public String unlimited() {
             return "No rate limiting applied";
+        }
+
+        // ====== API Protection Suite Examples ======
+        
+        /**
+         * Basic duplicate submit prevention
+         */
+        @PostMapping("/api/comment")
+        @DuplicateSubmit
+        public String addComment(@RequestBody(required = false) String content) {
+            return "Comment added: " + (content != null ? content : "empty") + " at " + System.currentTimeMillis();
+        }
+
+        /**
+         * Custom interval duplicate submit
+         */
+        @PostMapping("/api/like")
+        @DuplicateSubmit(
+            interval = 10,
+            message = "点赞操作过于频繁，请10秒后重试"
+        )
+        public String addLike(@RequestBody(required = false) String data) {
+            return "Like added at " + System.currentTimeMillis();
+        }
+
+        /**
+         * IP-based duplicate submit
+         */
+        @PostMapping("/api/feedback")
+        @DuplicateSubmit(
+            interval = 60,
+            dimension = DuplicateSubmit.KeyDimension.IP_METHOD,
+            message = "该IP操作过于频繁"
+        )
+        public String submitFeedback(@RequestBody(required = false) String feedback) {
+            return "Feedback submitted at " + System.currentTimeMillis();
+        }
+
+        /**
+         * Global method duplicate submit
+         */
+        @PostMapping("/api/system-config")
+        @DuplicateSubmit(
+            interval = 30,
+            dimension = DuplicateSubmit.KeyDimension.GLOBAL_METHOD,
+            message = "系统繁忙，请稍后重试"
+        )
+        public String updateSystemConfig(@RequestBody(required = false) String config) {
+            return "System config updated at " + System.currentTimeMillis();
+        }
+
+        /**
+         * Custom key expression duplicate submit
+         */
+        @PostMapping("/api/order")
+        @DuplicateSubmit(
+            interval = 300,
+            dimension = DuplicateSubmit.KeyDimension.CUSTOM,
+            keyExpression = "'order:' + #request.getParameter('productId')",
+            message = "请勿重复提交相同商品的订单"
+        )
+        public String createOrder(@RequestBody(required = false) String orderData) {
+            return "Order created at " + System.currentTimeMillis();
+        }
+
+        /**
+         * Basic idempotent operation
+         */
+        @PostMapping("/api/idempotent/create")
+        @Idempotent(timeout = 300)
+        public String idempotentCreate(@RequestBody(required = false) String data) {
+            // Simulate processing time
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return "Resource created at " + System.currentTimeMillis();
+        }
+
+        /**
+         * Custom key idempotent operation
+         */
+        @PostMapping("/api/idempotent/payment")
+        @Idempotent(
+            timeout = 600,
+            keyStrategy = Idempotent.KeyStrategy.CUSTOM,
+            keyExpression = "'payment:' + #request.getParameter('orderId')",
+            message = "订单正在处理中，请勿重复提交"
+        )
+        public String processPayment(@RequestBody(required = false) String paymentData) {
+            // Simulate payment processing
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return "Payment processed at " + System.currentTimeMillis();
         }
     }
 }

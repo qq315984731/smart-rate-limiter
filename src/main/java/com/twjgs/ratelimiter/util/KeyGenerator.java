@@ -17,9 +17,11 @@ import org.springframework.util.StringUtils;
 public class KeyGenerator {
 
     private final RateLimiterProperties properties;
+    private final CustomStrategyProcessor customStrategyProcessor;
 
-    public KeyGenerator(RateLimiterProperties properties) {
+    public KeyGenerator(RateLimiterProperties properties, CustomStrategyProcessor customStrategyProcessor) {
         this.properties = properties;
+        this.customStrategyProcessor = customStrategyProcessor;
     }
 
     /**
@@ -59,7 +61,8 @@ public class KeyGenerator {
                 return buildKey(prefix, "global", "system", separator);
                 
             case CUSTOM:
-                String customKey = evaluateCustomKey(keyExpression, request, userId, clientIp, methodSignature, spelEvaluator);
+                String customKey = customStrategyProcessor.processRateLimitCustomKey(
+                    keyExpression, request, userId, clientIp, methodSignature);
                 return buildKey(prefix, "custom", customKey, separator);
                 
             default:
@@ -67,27 +70,6 @@ public class KeyGenerator {
         }
     }
 
-    /**
-     * Evaluates custom key expression using SpEL
-     */
-    private String evaluateCustomKey(String keyExpression,
-                                   HttpServletRequest request,
-                                   String userId,
-                                   String clientIp,
-                                   String methodSignature,
-                                   SpelExpressionEvaluator spelEvaluator) {
-        if (!StringUtils.hasText(keyExpression)) {
-            // Default to method signature if no expression provided
-            return methodSignature;
-        }
-
-        try {
-            return spelEvaluator.evaluateExpression(keyExpression, request, userId, clientIp, methodSignature);
-        } catch (Exception e) {
-            // Fallback to method signature on evaluation error
-            return methodSignature;
-        }
-    }
 
     /**
      * Builds a key by joining components with separator

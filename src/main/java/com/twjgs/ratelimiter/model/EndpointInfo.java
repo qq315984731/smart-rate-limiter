@@ -2,6 +2,8 @@ package com.twjgs.ratelimiter.model;
 
 import lombok.Data;
 import com.twjgs.ratelimiter.annotation.RateLimit;
+import com.twjgs.ratelimiter.annotation.Idempotent;
+import com.twjgs.ratelimiter.annotation.DuplicateSubmit;
 import java.util.List;
 
 /**
@@ -39,14 +41,39 @@ public class EndpointInfo {
     private String path;
     
     /**
-     * 注解配置
+     * 限流注解配置
      */
     private RateLimit rateLimitAnnotation;
     
     /**
-     * 是否有注解配置
+     * 幂等性注解配置
+     */
+    private Idempotent idempotentAnnotation;
+    
+    /**
+     * 防重复提交注解配置
+     */
+    private DuplicateSubmit duplicateSubmitAnnotation;
+    
+    /**
+     * 是否有注解配置（任一类型）
      */
     private boolean hasAnnotation;
+    
+    /**
+     * 是否有限流注解
+     */
+    private boolean hasRateLimitAnnotation;
+    
+    /**
+     * 是否有幂等性注解
+     */
+    private boolean hasIdempotentAnnotation;
+    
+    /**
+     * 是否有防重复提交注解
+     */
+    private boolean hasDuplicateSubmitAnnotation;
     
     /**
      * 动态配置

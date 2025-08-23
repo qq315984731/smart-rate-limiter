@@ -1,0 +1,41 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: smart-rate-limiter-test
+
+smart:
+  rate-limiter:
+    enabled: true
+    storage-type: memory
+    default-key-prefix: "test:rate-limit"
+    
+    # Enable admin but use memory storage for testing
+    admin:
+      enabled: true
+      base-path: /rate-limiter
+      security:
+        enable-header-check: false
+    
+  api-protection:
+    enabled: true
+    storage:
+      type: memory
+    startup-cleanup-enabled: false
+    startup-cleanup-dynamic-config: false
+      
+    idempotent:
+      enabled: true
+      
+    duplicate-submit:
+      enabled: true
+
+
+logging:
+  level:
+    com.twjgs.ratelimiter: WARN
+    org.springframework: WARN
+    root: ERROR
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
