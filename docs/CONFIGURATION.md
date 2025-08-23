@@ -89,61 +89,99 @@ rate-limiter:
 
 ## 📊 完整配置
 
+> **重要说明**：以下配置均为**默认值**，无需显式配置即可使用。仅在需要自定义时才需要修改对应配置项。
+
 ```yaml
-# 🎯 限流核心配置
+# 🎯 限流核心配置（默认配置，无需显式设置）
 smart:
   rate-limiter:
-    enabled: true                           # 是否启用限流
-    storage-type: hybrid                    # 存储类型：redis/memory/hybrid
-    default-algorithm: sliding-window       # 默认算法
-    include-method-signature: true          # 是否包含方法签名
+    enabled: true                           # 是否启用限流（默认：true）
+    storage-type: redis                     # 存储类型：redis/memory/hybrid（默认：redis，无Redis时自动降级为memory）
+    default-algorithm: sliding-window       # 默认算法（默认：sliding-window）
+    include-method-signature: true          # 是否包含方法签名（默认：true）
     
-    # 🚀 性能优化
+    # 🚀 性能优化（默认配置）
     cache:
-      enabled: true                         # 启用本地缓存
-      max-size: 10000                      # 缓存最大大小
-      expire-after-write: PT1M              # 写后过期时间
-      expire-after-access: PT5M             # 访问后过期时间
+      enabled: true                         # 启用本地缓存（默认：true）
+      max-size: 1000                       # 缓存最大大小（默认：1000）
+      expire-after-write: PT1M              # 写后过期时间（默认：PT1M）
+      expire-after-access: PT5M             # 访问后过期时间（默认：PT5M）
     
-    # 📦 Redis配置
+    # 📦 Redis配置（默认配置）
     redis:
-      key-prefix: "smart:rate_limit:"       # Key前缀
-      key-separator: ":"                    # Key分隔符
-      script-cache-size: 100                # Lua脚本缓存大小
-      timeout: PT1S                         # 连接超时
-      use-lua-scripts: true                 # 使用Lua脚本
+      key-prefix: "rate_limit:"             # Key前缀（默认：rate_limit:）
+      key-separator: ":"                    # Key分隔符（默认：:）
+      timeout: PT1S                         # 连接超时（默认：PT1S）
+      use-lua-scripts: true                 # 使用Lua脚本（默认：true）
+      database: 0                           # Redis数据库索引（默认：0）
     
-    # 💾 内存存储配置
+    # 💾 内存存储配置（默认配置）
     memory:
-      max-size: 100000                      # 最大记录数
-      expire-after-access: PT10M            # 访问后过期
-      cleanup-interval: PT1M                # 清理间隔
+      max-size: 100000                      # 最大记录数（默认：100000）
+      expire-after-access: PT10M            # 访问后过期（默认：PT10M）
+      cleanup-interval: PT1M                # 清理间隔（默认：PT1M）
     
-    # 🛡️ 容错配置
+    # 🛡️ 容错配置（默认配置）
     fallback:
-      on-error: allow                       # 出错时行为：allow/reject
-      on-redis-unavailable: memory          # Redis不可用时：memory/allow_all/reject_all
-      max-errors: 5                         # 最大错误数
-      recovery-interval: PT1M               # 恢复检查间隔
+      on-error: allow                       # 出错时行为（默认：allow）
+      on-redis-unavailable: memory          # Redis不可用时（默认：memory）
+      max-errors: 5                         # 最大错误数（默认：5）
+      recovery-interval: PT1M               # 恢复检查间隔（默认：PT1M）
     
-    # 📈 监控配置
+    # 📈 监控配置（默认配置）
     monitoring:
-      enabled: true                         # 启用监控
-      include-detailed-tags: true           # 包含详细标签
-      metrics:
-        - REQUESTS_TOTAL
-        - REQUESTS_ALLOWED
-        - REQUESTS_REJECTED
-        - CHECK_DURATION
+      enabled: true                         # 启用监控（默认：true）
+      include-detailed-tags: true           # 包含详细标签（默认：true）
 
-# 🎛️ 管理页面配置
+  # 🔒 API保护套件配置（默认配置）
+  api-protection:
+    enabled: true                           # 启用API保护功能（默认：true）
+    
+    # 🎯 幂等性控制配置（默认配置）
+    idempotent:
+      enabled: true                         # 启用幂等性控制（默认：true）
+      default-timeout: 300                  # 默认超时时间（秒）（默认：300）
+      result-cache-enabled: true            # 启用结果缓存（默认：true）
+    
+    # 🚫 防重复提交配置（默认配置）
+    duplicate-submit:
+      enabled: true                         # 启用防重复提交（默认：true）
+      default-interval: 5                   # 默认时间间隔（秒）（默认：5）
+    
+    # 💾 存储配置（默认配置）
+    storage:
+      type: memory                          # 存储类型（默认：memory，有Redis时自动使用redis）
+    
+    # 📊 监控配置（默认配置）
+    monitoring:
+      enabled: true                         # 启用监控指标（默认：true）
+      metrics-enabled: true                 # 启用 Micrometer 指标（默认：true）
+    
+    # ⚙️ 启动清理配置（默认配置）
+    startup-cleanup-enabled: true           # 启动时清理API保护数据（默认：true）
+    startup-cleanup-dynamic-config: true    # 启动时清理动态配置（默认：true）
+    
+    # 🔑 键前缀配置（默认配置）
+    key-prefix:
+      idempotent: "smart:idempotent:"       # 幂等性键前缀（默认：smart:idempotent:）
+      duplicate-submit: "smart:duplicate:"  # 防重复提交键前缀（默认：smart:duplicate:）
+      dynamic-config: "smart:config:"       # 动态配置键前缀（默认：smart:config:）
+      application-id:                       # 应用标识，多应用共享Redis时使用（默认：空）
+    
+    # 📋 拦截器优先级配置（默认配置）
+    interceptor-order:
+      idempotent: 100                       # 幂等性拦截器优先级（默认：100）
+      duplicate-submit: 200                 # 防重复提交拦截器优先级（默认：200）
+      rate-limit: 50                        # 限流拦截器优先级（默认：50）
+
+# 🎛️ 管理页面配置（默认关闭，需要显式启用）
 rate-limiter:
   admin:
-    enabled: true                           # 启用管理页面
-    base-path: /admin/rate-limiter         # 访问路径
-    username: admin                        # 登录用户名
-    password: your_secure_password         # 登录密码（请修改）
-    session-timeout: 30                    # 会话超时（分钟）
+    enabled: false                          # 启用管理页面（默认：false，需要显式启用）
+    base-path: /admin/rate-limiter         # 访问路径（默认：/admin/rate-limiter）
+    username: admin                        # 登录用户名（默认：admin）
+    password: admin123                     # 登录密码（默认：admin123，生产环境请修改）
+    session-timeout: 30                    # 会话超时分钟数（默认：30）
     
     # 🔒 安全配置
     security:

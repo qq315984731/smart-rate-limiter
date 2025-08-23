@@ -210,6 +210,11 @@
             color: white;
         }
         
+        .action-btn.success {
+            background: #28a745;
+            color: white;
+        }
+        
         .action-btn.secondary {
             background: #6c757d;
             color: white;
@@ -287,7 +292,10 @@
                 <div class="card-body">
                     <div class="quick-actions">
                         <a th:href="${basePath + '/endpoints'}" class="action-btn primary">
-                            📋 管理接口配置
+                            📋 管理限流配置
+                        </a>
+                        <a th:href="${basePath + '/api-protection'}" class="action-btn success">
+                            🔒 API保护管理
                         </a>
                         <a href="javascript:void(0)" onclick="refreshCache()" class="action-btn secondary">
                             🔄 刷新接口缓存
@@ -318,11 +326,18 @@
         }
         
         function refreshCache() {
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            // 如果启用了安全头检查，则添加安全头
+            /*[# th:if="${securityConfig.headerCheckEnabled}" ]*/
+            headers['[[${securityConfig.headerName}]]'] = '[[${securityConfig.headerValue}]]';
+            /*[/]*/
+            
             fetch('[[${basePath}]]/api/refresh', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                headers: headers
             })
             .then(response => response.json())
             .then(data => {

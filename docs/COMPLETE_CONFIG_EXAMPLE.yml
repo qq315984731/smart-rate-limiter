@@ -96,6 +96,51 @@ smart:
       # 是否包含详细标签（维度、算法等）
       include-detailed-tags: true
 
+  # ----------------------------------------------------------------------------
+  # 🔒 API保护套件配置 (smart.api-protection)
+  # ----------------------------------------------------------------------------
+  api-protection:
+    # 是否启用API保护功能
+    enabled: true
+    
+    # 🎯 幂等性控制配置
+    idempotent:
+      enabled: true                         # 启用幂等性控制
+      default-timeout: 300                  # 默认超时时间（秒）
+      result-cache-enabled: true            # 启用结果缓存
+      max-result-size: 10240               # 最大缓存结果大小（字节）
+    
+    # 🚫 防重复提交配置
+    duplicate-submit:
+      enabled: true                         # 启用防重复提交
+      default-interval: 5                   # 默认时间间隔（秒）
+    
+    # ⚙️ 启动清理配置
+    startup-cleanup-enabled: true           # 启动时清理API保护数据
+    startup-cleanup-dynamic-config: true    # 启动时清理动态配置数据
+    
+    # 🔑 键前缀配置 - 支持多应用共享Redis
+    key-prefix:
+      idempotent: "smart:idempotent:"       # 幂等性键前缀
+      duplicate-submit: "smart:duplicate:"  # 防重复提交键前缀
+      dynamic-config: "smart:config:"       # 动态配置键前缀
+      application-id: "${spring.application.name:}"  # 应用标识，多应用时自动区分
+    
+    # 📋 拦截器执行优先级配置
+    interceptor-order:
+      rate-limit: 50                        # 限流拦截器优先级（最高）
+      idempotent: 100                       # 幂等性拦截器优先级
+      duplicate-submit: 200                 # 防重复提交拦截器优先级（最低）
+    
+    # 💾 存储配置
+    storage:
+      type: redis                           # 存储类型：redis/memory
+    
+    # 📊 监控配置
+    monitoring:
+      enabled: true                         # 启用监控指标
+      metrics-enabled: true                 # 启用 Micrometer 指标
+
 # ============================================================================
 # 🎛️ 管理页面配置 (rate-limiter.admin)
 # ============================================================================

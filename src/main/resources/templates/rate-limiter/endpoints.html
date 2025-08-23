@@ -442,11 +442,18 @@
         }
         
         function refreshEndpoints() {
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            // 如果启用了安全头检查，则添加安全头
+            /*[# th:if="${securityConfig.headerCheckEnabled}" ]*/
+            headers['[[${securityConfig.headerName}]]'] = '[[${securityConfig.headerValue}]]';
+            /*[/]*/
+            
             fetch('[[${basePath}]]/api/refresh', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                headers: headers
             })
             .then(response => response.json())
             .then(data => {
@@ -465,11 +472,18 @@
         
         function deleteConfig(methodSignature) {
             if (confirm('确定要删除该动态配置吗？')) {
+                const headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                };
+                
+                // 如果启用了安全头检查，则添加安全头
+                /*[# th:if="${securityConfig.headerCheckEnabled}" ]*/
+                headers['[[${securityConfig.headerName}]]'] = '[[${securityConfig.headerValue}]]';
+                /*[/]*/
+                
                 fetch('[[${basePath}]]/api/config/delete', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
+                    headers: headers,
                     body: 'methodSignature=' + encodeURIComponent(methodSignature)
                 })
                 .then(response => response.json())

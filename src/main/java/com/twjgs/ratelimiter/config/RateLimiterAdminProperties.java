@@ -15,14 +15,13 @@ import java.util.List;
  * @since 1.0.0
  */
 @Data
-@Component
-@ConfigurationProperties(prefix = "rate-limiter.admin")
+@ConfigurationProperties(prefix = "smart.rate-limiter.admin")
 public class RateLimiterAdminProperties {
 
     /**
-     * 是否启用管理页面
+     * 是否启用管理页面 - 默认为false，需要显式配置才会启用
      */
-    private boolean enabled = true;
+    private boolean enabled = false;
 
     /**
      * 管理页面基础路径
@@ -122,7 +121,7 @@ public class RateLimiterAdminProperties {
         /**
          * 自定义排除的Controller类名包含的关键字（逗号分隔）
          */
-        private String excludeControllerKeywords = "BasicErrorController,ErrorController";
+        private String excludeControllerKeywords = "BasicErrorController,ErrorController,RateLimiterManagement,Management,Admin";
     }
 
     @Data
@@ -133,9 +132,9 @@ public class RateLimiterAdminProperties {
         private boolean fileEnabled = false;
 
         /**
-         * 日志文件输出路径（默认：./logs/rate-limiter/config-operations.log）
+         * 日志文件输出路径（默认：./logs/rate-limiter/operations.log）
          */
-        private String filePath = "./logs/rate-limiter/config-operations.log";
+        private String filePath = "./logs/rate-limiter/operations.log";
     }
 
     @Data

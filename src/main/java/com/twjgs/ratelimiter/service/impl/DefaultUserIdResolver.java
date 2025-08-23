@@ -96,9 +96,9 @@ public class DefaultUserIdResolver implements UserIdResolver {
                 }
             }
         } catch (ClassNotFoundException e) {
-            log.debug("Spring Security not found on classpath, skipping security context resolution");
+            // Spring Security not available - skip
         } catch (Exception e) {
-            log.debug("Failed to get user ID from security context: {}", e.getMessage());
+            // Failed to get user ID from security context - skip
         }
         return null;
     }
@@ -127,7 +127,7 @@ public class DefaultUserIdResolver implements UserIdResolver {
             return principal.toString();
             
         } catch (Exception e) {
-            log.debug("Failed to extract user ID from principal: {}", e.getMessage());
+            // Failed to extract user ID from principal
             return null;
         }
     }
@@ -143,7 +143,7 @@ public class DefaultUserIdResolver implements UserIdResolver {
                 return parseUserIdFromJwtToken(token);
             }
         } catch (Exception e) {
-            log.debug("Failed to extract user ID from JWT token: {}", e.getMessage());
+            // Failed to extract user ID from JWT token
         }
         return null;
     }
@@ -187,7 +187,7 @@ public class DefaultUserIdResolver implements UserIdResolver {
                 }
             }
         } catch (Exception e) {
-            log.debug("Failed to parse JWT token: {}", e.getMessage());
+            // Failed to parse JWT token
         }
         return null;
     }

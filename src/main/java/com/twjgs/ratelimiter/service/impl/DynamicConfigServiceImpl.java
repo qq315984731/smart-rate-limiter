@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * 动态配置服务实现
@@ -20,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 1.0.0
  */
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class DynamicConfigServiceImpl implements DynamicConfigService {
     
@@ -32,19 +32,42 @@ public class DynamicConfigServiceImpl implements DynamicConfigService {
     // 本地缓存，提升性能
     private final Map<String, DynamicRateLimitConfig> localCache = new ConcurrentHashMap<>();
     
+    // 读写锁，保证缓存操作的线程安全性
+    private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock();
+    
     @Override
     public DynamicRateLimitConfig getDynamicConfig(String methodSignature) {
-        // 先从本地缓存获取
-        DynamicRateLimitConfig cached = localCache.get(methodSignature);
-        if (cached != null) {
-            // 检查是否过期
-            if (cached.getTemporary() && cached.getExpireTime() != null 
-                && cached.getExpireTime().isBefore(LocalDateTime.now())) {
-                // 配置已过期，删除
-                deleteDynamicConfig(methodSignature, "SYSTEM");
-                return null;
+        // 使用读锁获取缓存
+        cacheLock.readLock().lock();
+        try {
+            DynamicRateLimitConfig cached = localCache.get(methodSignature);
+            if (cached != null) {
+                // 检查是否过期
+                if (cached.getTemporary() && cached.getExpireTime() != null 
+                    && cached.getExpireTime().isBefore(LocalDateTime.now())) {
+                    // 配置已过期，需要删除，升级为写锁
+                    cacheLock.readLock().unlock();
+                    cacheLock.writeLock().lock();
+                    try {
+                        // 再次检查（双重检查锁定模式）
+                        cached = localCache.get(methodSignature);
+                        if (cached != null && cached.getTemporary() && cached.getExpireTime() != null 
+                            && cached.getExpireTime().isBefore(LocalDateTime.now())) {
+                            localCache.remove(methodSignature);
+                            // 从 Redis 也删除
+                            String key = CONFIG_PREFIX + methodSignature;
+                            redisTemplate.delete(key);
+                        }
+                        return null;
+                    } finally {
+                        cacheLock.readLock().lock();
+                        cacheLock.writeLock().unlock();
+                    }
+                }
+                return cached;
             }
-            return cached;
+        } finally {
+            cacheLock.readLock().unlock();
         }
         
         // 从Redis获取
@@ -61,8 +84,13 @@ public class DynamicConfigServiceImpl implements DynamicConfigService {
                     return null;
                 }
                 
-                // 放入本地缓存
-                localCache.put(methodSignature, config);
+                // 放入本地缓存（使用写锁）
+                cacheLock.writeLock().lock();
+                try {
+                    localCache.put(methodSignature, config);
+                } finally {
+                    cacheLock.writeLock().unlock();
+                }
                 return config;
             }
         } catch (Exception e) {
@@ -91,14 +119,15 @@ public class DynamicConfigServiceImpl implements DynamicConfigService {
             String key = CONFIG_PREFIX + methodSignature;
             redisTemplate.opsForValue().set(key, config);
             
-            // 更新本地缓存
-            localCache.put(methodSignature, config);
+            // 更新本地缓存（使用写锁）
+            cacheLock.writeLock().lock();
+            try {
+                localCache.put(methodSignature, config);
+            } finally {
+                cacheLock.writeLock().unlock();
+            }
             
             // 记录操作日志（简化）
-            log.info("Config operation: method={}, operator={}, action={}", 
-                methodSignature, operator, oldConfig == null ? "CREATE" : "UPDATE");
-            
-            log.info("Dynamic config saved: method={}, operator={}", methodSignature, operator);
             
         } catch (Exception e) {
             log.error("Failed to save dynamic config for {}: {}", methodSignature, e.getMessage(), e);
@@ -117,13 +146,15 @@ public class DynamicConfigServiceImpl implements DynamicConfigService {
                 String key = CONFIG_PREFIX + methodSignature;
                 redisTemplate.delete(key);
                 
-                // 从本地缓存删除
-                localCache.remove(methodSignature);
+                // 从本地缓存删除（使用写锁）
+                cacheLock.writeLock().lock();
+                try {
+                    localCache.remove(methodSignature);
+                } finally {
+                    cacheLock.writeLock().unlock();
+                }
                 
                 // 记录操作日志（简化）
-                log.info("Config operation: method={}, operator={}, action=DELETE", methodSignature, operator);
-                
-                log.info("Dynamic config deleted: method={}, operator={}", methodSignature, operator);
             }
             
         } catch (Exception e) {
@@ -166,8 +197,6 @@ public class DynamicConfigServiceImpl implements DynamicConfigService {
             
             redisTemplate.opsForValue().set(key, config);
             
-            log.info("Path pattern config saved: pattern={}, method={}, operator={}", 
-                    pathPattern, httpMethod, operator);
             
         } catch (Exception e) {
             log.error("Failed to save path pattern config: {}", e.getMessage(), e);
@@ -197,9 +226,6 @@ public class DynamicConfigServiceImpl implements DynamicConfigService {
                     }
                 }
                 
-                if (cleanedCount > 0) {
-                    log.info("Cleaned {} expired dynamic configs", cleanedCount);
-                }
             }
         } catch (Exception e) {
             log.error("Failed to clean expired configs: {}", e.getMessage(), e);
