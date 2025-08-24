@@ -84,6 +84,7 @@ public class RateLimiterAdminProperties {
          * IP白名单（逗号分隔）
          */
         private String allowedIps = "";
+
     }
 
     @Data
