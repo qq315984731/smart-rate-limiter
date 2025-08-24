@@ -52,7 +52,7 @@
 <dependency>
     <groupId>com.twjgs</groupId>
     <artifactId>smart-rate-limiter-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
@@ -169,7 +169,7 @@ rate-limiter:
 
 访问：`http://localhost:8080/admin/rate-limiter/login`
 
-> **安全提示**：管理界面默认关闭，需要显式配置 `enabled: true` 才会启用。  启用后使用默认用户名 `admin` 和密码 `admin123`，生产环境请务必修改默认密码！
+> **安全提示**：管理界面默认关闭，需要显式配置 `enabled: true` 才会启用。  启用后使用默认用户名 `admin` 和密码 `admin123`，生产环境请务必修改默认密码！如果被用户自己系统的拦截器拦截了面板，需要手动放行base-path/**
 
 ## 🚦 限流控制
 

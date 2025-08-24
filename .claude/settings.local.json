@@ -16,12 +16,17 @@
       "Bash(cp:*)",
       "Bash(tar:*)",
       "Bash(find:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git checkout:*)",
+      "Bash(git reset:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": [],
     "additionalDirectories": [
-      "D:\\d\\code"
+      "D:\\d\\code",
+      "D:\\"
     ]
   }
 }

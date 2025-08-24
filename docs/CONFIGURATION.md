@@ -49,6 +49,28 @@ rate-limiter:
 
 访问：`http://localhost:8080/admin/rate-limiter/login`
 
+### JWT项目配置
+
+```yaml
+# application.yml - 适用于JWT等自定义认证项目
+rate-limiter:
+  admin:
+    enabled: true
+    username: admin
+    password: ${ADMIN_PASSWORD:admin123}
+```
+
+**JWT拦截器配置**：需要排除管理面板路径
+```java
+registry.addInterceptor(jwtInterceptor)
+        .addPathPatterns("/**")
+        .excludePathPatterns("/admin/rate-limiter/**");  // 排除管理面板
+```
+
+访问：`http://localhost:8080/admin/rate-limiter/login`
+
+详细集成方案请参考：[JWT项目集成指南](SIMPLE_INTEGRATION.md)
+
 ## 🎯 最简配置
 
 ### 纯注解使用（推荐新手）
@@ -189,6 +211,7 @@ rate-limiter:
       header-name: X-Admin-Token           # 安全头名称
       header-value: your_secret_token      # 安全头值
       allowed-ips: "192.168.1.0/24,10.0.0.0/8"  # IP白名单
+      # 注意：JWT绕过功能已自动启用，无需手动配置
     
     # 🔍 接口发现配置
     discovery:
