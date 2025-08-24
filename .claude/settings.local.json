@@ -18,7 +18,9 @@
       "Bash(find:*)",
       "Bash(rm:*)",
       "Bash(git checkout:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": [],
