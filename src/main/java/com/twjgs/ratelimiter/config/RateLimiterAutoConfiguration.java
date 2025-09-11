@@ -32,6 +32,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -74,12 +77,26 @@ public class RateLimiterAutoConfiguration {
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(StringRedisTemplate.class)
     @ConditionalOnProperty(prefix = "smart.rate-limiter", name = "storage-type", havingValue = "redis", matchIfMissing = false)
+    @Order(Ordered.HIGHEST_PRECEDENCE)  // 最高优先级
     static class RedisRateLimiterConfiguration {
 
         @Bean
         @ConditionalOnMissingBean
-        public RateLimitService redisRateLimitService(StringRedisTemplate redisTemplate, 
+        @Primary  // 设置为主要Bean
+        public RateLimitService redisRateLimitService(@Autowired(required = true) StringRedisTemplate redisTemplate, 
                                                      RateLimiterProperties properties) {
+            log.info("Creating RedisRateLimitService with Redis storage");
+            
+            // 验证Redis连接
+            try {
+                redisTemplate.opsForValue().set("smart-rate-limiter:health-check", "ok", java.time.Duration.ofSeconds(5));
+                redisTemplate.delete("smart-rate-limiter:health-check");
+                log.info("Redis connection verified successfully for rate limiting");
+            } catch (Exception e) {
+                log.error("Redis connection test failed, but continuing with Redis configuration: " + e.getMessage());
+                // 不抛出异常，让Redis服务照常创建，运行时再处理连接问题
+            }
+            
             return new RedisRateLimitService(redisTemplate, properties);
         }
     }
@@ -89,11 +106,13 @@ public class RateLimiterAutoConfiguration {
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(prefix = "smart.rate-limiter", name = "storage-type", havingValue = "memory", matchIfMissing = true)
+    @Order(Ordered.HIGHEST_PRECEDENCE + 100)  // 较低优先级
     static class MemoryRateLimiterConfiguration {
 
         @Bean
         @ConditionalOnMissingBean
         public RateLimitService memoryRateLimitService(RateLimiterProperties properties) {
+            log.info("Creating MemoryRateLimitService with in-memory storage");
             return new MemoryRateLimitService(properties);
         }
     }
@@ -103,6 +122,7 @@ public class RateLimiterAutoConfiguration {
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnMissingBean(RateLimitService.class)
+    @Order(Ordered.LOWEST_PRECEDENCE)  // 最低优先级，确保最后执行
     static class FallbackRateLimiterConfiguration {
 
         @Bean
@@ -184,11 +204,14 @@ public class RateLimiterAutoConfiguration {
          */
         @Configuration(proxyBeanMethods = false)
         @ConditionalOnClass(name = "org.springframework.data.redis.core.RedisTemplate")
+        @Order(Ordered.HIGHEST_PRECEDENCE)  // 最高优先级
         static class RedisAdminConfiguration {
             
             @Bean
             @ConditionalOnMissingBean
+            @Primary  // 设置为主要Bean
             public DynamicConfigService dynamicConfigService(RedisTemplate<String, Object> redisTemplate) {
+                log.info("Creating DynamicConfigService with Redis storage");
                 return new DynamicConfigServiceImpl(redisTemplate);
             }
         }
@@ -198,6 +221,7 @@ public class RateLimiterAutoConfiguration {
          */
         @Configuration(proxyBeanMethods = false)
         @ConditionalOnMissingBean(DynamicConfigService.class)
+        @Order(Ordered.LOWEST_PRECEDENCE)  // 最低优先级
         static class FallbackAdminConfiguration {
 
             @Bean
@@ -354,25 +378,30 @@ public class RateLimiterAutoConfiguration {
         @Configuration(proxyBeanMethods = false)
         @ConditionalOnClass(RedisTemplate.class)
         @ConditionalOnProperty(prefix = "smart.api-protection", name = "storage.type", havingValue = "redis", matchIfMissing = false)
+        @Order(Ordered.HIGHEST_PRECEDENCE)  // 最高优先级
         static class RedisApiProtectionConfiguration {
             
             @Bean
             @ConditionalOnMissingBean
+            @Primary  // 设置为主要Bean
             @ConditionalOnProperty(prefix = "smart.api-protection.idempotent", name = "enabled", havingValue = "true", matchIfMissing = true)
             public IdempotentService redisIdempotentService(RedisTemplate<String, Object> redisTemplate,
                                                            ObjectMapper objectMapper,
                                                            RateLimiterProperties rateLimiterProperties,
                                                            ApiProtectionProperties apiProtectionProperties,
                                                            @Autowired(required = false) RedisExpirationService redisExpirationService) {
+                log.info("Creating RedisIdempotentService with Redis storage");
                 return new RedisIdempotentService(redisTemplate, objectMapper, rateLimiterProperties, apiProtectionProperties, redisExpirationService);
             }
             
             @Bean
             @ConditionalOnMissingBean
+            @Primary  // 设置为主要Bean
             @ConditionalOnProperty(prefix = "smart.api-protection.duplicate-submit", name = "enabled", havingValue = "true", matchIfMissing = true)
             public DuplicateSubmitService redisDuplicateSubmitService(RedisTemplate<String, String> redisTemplate,
                                                                      ObjectMapper objectMapper,
                                                                      ApiProtectionProperties apiProtectionProperties) {
+                log.info("Creating RedisDuplicateSubmitService with Redis storage");
                 return new RedisDuplicateSubmitService(redisTemplate, objectMapper, apiProtectionProperties);
             }
 
@@ -389,12 +418,14 @@ public class RateLimiterAutoConfiguration {
          */
         @Configuration(proxyBeanMethods = false)
         @ConditionalOnProperty(prefix = "smart.api-protection", name = "storage.type", havingValue = "memory", matchIfMissing = true)
+        @Order(Ordered.HIGHEST_PRECEDENCE + 100)  // 较低优先级
         static class MemoryApiProtectionConfiguration {
             
             @Bean
             @ConditionalOnMissingBean
             @ConditionalOnProperty(prefix = "smart.api-protection.idempotent", name = "enabled", havingValue = "true", matchIfMissing = true)
             public IdempotentService memoryIdempotentService() {
+                log.info("Creating MemoryIdempotentService with in-memory storage");
                 return new MemoryIdempotentService();
             }
             
@@ -402,6 +433,7 @@ public class RateLimiterAutoConfiguration {
             @ConditionalOnMissingBean
             @ConditionalOnProperty(prefix = "smart.api-protection.duplicate-submit", name = "enabled", havingValue = "true", matchIfMissing = true)
             public DuplicateSubmitService memoryDuplicateSubmitService() {
+                log.info("Creating MemoryDuplicateSubmitService with in-memory storage");
                 return new MemoryDuplicateSubmitService();
             }
         }
@@ -412,6 +444,7 @@ public class RateLimiterAutoConfiguration {
         @Configuration(proxyBeanMethods = false)
         @ConditionalOnMissingBean(IdempotentService.class)
         @ConditionalOnProperty(prefix = "smart.api-protection.idempotent", name = "enabled", havingValue = "true", matchIfMissing = true)
+        @Order(Ordered.LOWEST_PRECEDENCE)  // 最低优先级
         static class FallbackApiProtectionConfiguration {
 
             @Bean
@@ -427,6 +460,7 @@ public class RateLimiterAutoConfiguration {
         @Configuration(proxyBeanMethods = false)
         @ConditionalOnMissingBean(DuplicateSubmitService.class)
         @ConditionalOnProperty(prefix = "smart.api-protection.duplicate-submit", name = "enabled", havingValue = "true", matchIfMissing = true)
+        @Order(Ordered.LOWEST_PRECEDENCE)  // 最低优先级
         static class FallbackDuplicateSubmitConfiguration {
 
             @Bean
